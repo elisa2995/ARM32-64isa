@@ -1,12 +1,12 @@
 # Makefile
 
-all: sha
+all: sha2
 
-sha: sha.o
+sha2: sha2.o
 	gcc -o $@ $+
 
-sha.o : sha.s
+sha2.o : sha2.s
 	as -o $@ $<
 
 clean: 
-	rm -vf sha *.o
+	rm -vf sha2 *.o
