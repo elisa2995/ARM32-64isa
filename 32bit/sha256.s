@@ -10,13 +10,16 @@
 .equ INPUT_LENGTH_W, 0
 .balign 4
 hash: .word 0x6a09e667,0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19
+string: .asciz "ciao \n"
 .balign 4
 k: .word    0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5,0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147,0x06ca6351, 0x14292967,0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85,0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a,0x5b9cca4f, 0x682e6ff3,0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2
 
 /*input_b: .byte 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30
 input_w: .word 0,0	 */
 input_b: .byte 0x0
-input_w: .word 0 	 
+input_w: .word 0 
+addr_input: .word 0	 
+input_length: .word 0
 processed: .word 0, 0, 10, 10,0, 0, 10, 10,0, 0, 10, 10,0, 0, 10, 10
 message: .word   0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 a: .word 0
@@ -29,12 +32,24 @@ g: .word 0
 m: .word 0
    
 .text
-.global main
+.global mainAsm
+.global printf
 
-main:
+/*
+ * PARAMS:
+ * r0=address(input)
+ * r1=length(input)	
+*/
+mainAsm:
 	push {lr}
+
+	ldr r2, ptr_addr_input		 		
+	str r0, [r2]						/*r0=address(input)->addr_input*/
+	ldr r2, addr_input_length
+	str r1, [r2]						/*r1=length(input)->input_length*/
+bp1:
 	bl parse
-		
+bp:		
 	/*PREPROSSING*/
 	bl preprocess
 	bl startPadding
@@ -42,7 +57,9 @@ main:
 	
 	/*COMPRESSION*/
 	bl processChunks
-	
+
+	ldr r0, addr_string
+	/*bl printf	 */
 	
 breakpoint:
 	pop {lr}
@@ -64,40 +81,60 @@ breakpoint:
  */
 parse:	
  		push {r5, r6, r7, r8, r9, r10, r11, r12}
-		movs r5, #INPUT_LENGTH_B		/*if INPUT_LENGTH_B==0 end*/
-		beq break_prs 
+
+		ldr r5, addr_input_length
+		ldr r7, ptr_addr_input
+		ldr r7, [r7]					/*r7<- [input]*/
+		ldr r5, [r5]				  	/*r5<-input_length*/
+
+		ands r5, r5, #0b00000011		/*r5=input_length MOD 4 */
+		beq end_parse
+		rsb r6, r5, #3					/*r6= (3-#input_length MOD 4)index of the byte in the word from which to insert 0*/
+		lsl r6, #3						/*r6=r6*8, number of left shifts of 0b00000000*/
+		ldr r8, [r7, r5, lsl #2]
+
+		mov r10, #0xFFFFFF00			/*r10=mask*/
+		lsl r10, r6						/*lsl of the mask(ex input_length=6=>mask=0xFFFF0000)*/
+		and r8, r8,r10					/*apply the mask*/
+		str r8, [r7, r5, lsl #2]		
+	
+
+
+
+/*		movs r5, #INPUT_LENGTH_B		/*if INPUT_LENGTH_B==0 end*/
+/*		beq break_prs 
 
  		ldr r6, addr_input_b			/*r6->input_b*/
- 		ldr r8, addr_input_w			/*r8->input_w*/
- 		mov r5,#0						/*r5=counter i*/
- 		mov r7,#0						/*r7=counter j*/
-loop_prs_i:
- 		mov r11,#0						/*r11 holds the 4 byte chunk from input*/
- 		mov r7, #0						/*j=0*/
-loop_prs_j:
- 		add r9, r7, r5, lsl #2			/*r9<- j+i*WORD*/
- 		cmp r9, #INPUT_LENGTH_B			/*if j+i*WORD == INPUT_LENGTH_B*/
- 		beq end_prs						/*END*/
- 		ldrb r10, [r6, r9]				/*r10<-input_b[j+i*WORD]*/
- 			
- 		rsb r9, r7, #WORD-1				/*r9<-WORD-1-j*/		 
- 		lsl r9,#3						/*r9<-(WORD-1-j)*8*/	
- 		lsl r10, r9	
- 		orr r11,r10						/*r11(byte j)=INPUT[j+i*4]*/	
- 				 
- 		add r7,r7, #1
- 		cmp r7, #WORD
- 		blt loop_prs_j
- 		/*end loop_prs_j*/
-end_prs:
- 		str r11, [r8,r5, lsl #2]
- 		add r5,r5,#1
- 		cmp r5, #INPUT_LENGTH_W
- 		blt loop_prs_i
- /*end loop_prs_i*/	
-break_prs:
- 		pop {r5, r6, r7, r8, r9, r10, r11, r12}
- 		bx lr
+/* 		ldr r8, addr_input_w			/*r8->input_w*/
+// 		mov r5,#0						/*r5=counter i*/
+// 		mov r7,#0						/*r7=counter j*/
+//loop_prs_i:
+// 		mov r11,#0						/*r11 holds the 4 byte chunk from input*/
+// 		mov r7, #0						/*j=0*/
+//loop_prs_j:
+// 		add r9, r7, r5, lsl #2			/*r9<- j+i*WORD*/
+// 		cmp r9, #INPUT_LENGTH_B			/*if j+i*WORD == INPUT_LENGTH_B*/
+// 		beq end_prs						/*END*/
+// 		ldrb r10, [r6, r9]				/*r10<-input_b[j+i*WORD]*/
+// 			
+// 		rsb r9, r7, #WORD-1				/*r9<-WORD-1-j*/		 
+// 		lsl r9,#3						/*r9<-(WORD-1-j)*8*/	
+// 		lsl r10, r9	
+// 		orr r11,r10						/*r11(byte j)=INPUT[j+i*4]*/	
+// 				 
+// 		add r7,r7, #1
+// 		cmp r7, #WORD
+// 		blt loop_prs_j
+// 		/*end loop_prs_j*/
+//end_prs:
+// 		str r11, [r8,r5, lsl #2]
+// 		add r5,r5,#1
+// 		cmp r5, #INPUT_LENGTH_W
+// 		blt loop_prs_i
+// /*end loop_prs_i*/	
+//break_prs:
+end_parse: 		pop {r5, r6, r7, r8, r9, r10, r11, r12}
+ 				bx lr
 
 	
 /* preprocess
@@ -635,3 +672,6 @@ addr_e: .word e
 addr_f: .word f
 addr_g: .word g
 addr_m: .word m
+addr_string: .word string
+ptr_addr_input: .word addr_input
+addr_input_length: .word input_length
