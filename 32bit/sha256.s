@@ -2,25 +2,12 @@
 
 .data
 .equ WORD,4
-.equ PRD_LENGTH_W, 16 /*words(512 bits)*/
-.equ PRD_BYTES, PRD_LENGTH_W*WORD
-/*.equ INPUT_LENGTH_B, 8 /*byte*/
-/*.equ INPUT_LENGTH_W, 2*/
-.equ INPUT_LENGTH_B, 0
-.equ INPUT_LENGTH_W, 0
 .balign 4
 hash: .word 0x6a09e667,0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19
-string: .asciz "ciao \n"
 .balign 4
 k: .word    0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5,0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147,0x06ca6351, 0x14292967,0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85,0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a,0x5b9cca4f, 0x682e6ff3,0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2
-
-/*input_b: .byte 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30
-input_w: .word 0,0	 */
-input_b: .byte 0x0
-input_w: .word 0 
 addr_input: .word 0	 
 input_length: .word 0
-processed: .word 0, 0, 10, 10,0, 0, 10, 10,0, 0, 10, 10,0, 0, 10, 10
 message: .word   0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 a: .word 0
 b: .word 0
@@ -33,8 +20,7 @@ m: .word 0
    
 .text
 .global mainAsm
-.global printf
-
+.global printHash
 /*
  * PARAMS:
  * r0=address(input)
@@ -47,140 +33,41 @@ mainAsm:
 	str r0, [r2]						/*r0=address(input)->addr_input*/
 	ldr r2, addr_input_length
 	str r1, [r2]						/*r1=length(input)->input_length*/
-bp1:
-	bl parse
-bp:		
+	
 	/*PREPROSSING*/
-	bl preprocess
 	bl startPadding
 	bl fillEnd
 	
 	/*COMPRESSION*/
 	bl processChunks
 
-	ldr r0, addr_string
-	/*bl printf	 */
+	/*PRINT HASH*/
+	ldr r0, addr_hash
+	bl printHash
+
 	
 breakpoint:
 	pop {lr}
 	bx lr
-	
-/* parse
- * Parses a string (array of char - 1 byte) into an array of words (4 bytes)
- * adding 0 at the end (if necessary).
- * (We assume that the word array is initialized to 0s)
- * for(int i=0; i<INPUT_LENGTH_W; i++){
- *	for(int j=0; j<WORD; j++){
- *		if(j+i*WORD==INPUT_LENGTH_B){
- *			break;
- *		}
- * 		r10+=lsl(input[j+i*WORD],(WORD-j-1)*8)
- *	}
- *	input_w[i]=r10;
- * }
- */
-parse:	
- 		push {r5, r6, r7, r8, r9, r10, r11, r12}
-
-		ldr r5, addr_input_length
-		ldr r7, ptr_addr_input
-		ldr r7, [r7]					/*r7<- [input]*/
-		ldr r5, [r5]				  	/*r5<-input_length*/
-
-		ands r5, r5, #0b00000011		/*r5=input_length MOD 4 */
-		beq end_parse
-		rsb r6, r5, #3					/*r6= (3-#input_length MOD 4)index of the byte in the word from which to insert 0*/
-		lsl r6, #3						/*r6=r6*8, number of left shifts of 0b00000000*/
-		ldr r8, [r7, r5, lsl #2]
-
-		mov r10, #0xFFFFFF00			/*r10=mask*/
-		lsl r10, r6						/*lsl of the mask(ex input_length=6=>mask=0xFFFF0000)*/
-		and r8, r8,r10					/*apply the mask*/
-		str r8, [r7, r5, lsl #2]		
-	
-
-
-
-/*		movs r5, #INPUT_LENGTH_B		/*if INPUT_LENGTH_B==0 end*/
-/*		beq break_prs 
-
- 		ldr r6, addr_input_b			/*r6->input_b*/
-/* 		ldr r8, addr_input_w			/*r8->input_w*/
-// 		mov r5,#0						/*r5=counter i*/
-// 		mov r7,#0						/*r7=counter j*/
-//loop_prs_i:
-// 		mov r11,#0						/*r11 holds the 4 byte chunk from input*/
-// 		mov r7, #0						/*j=0*/
-//loop_prs_j:
-// 		add r9, r7, r5, lsl #2			/*r9<- j+i*WORD*/
-// 		cmp r9, #INPUT_LENGTH_B			/*if j+i*WORD == INPUT_LENGTH_B*/
-// 		beq end_prs						/*END*/
-// 		ldrb r10, [r6, r9]				/*r10<-input_b[j+i*WORD]*/
-// 			
-// 		rsb r9, r7, #WORD-1				/*r9<-WORD-1-j*/		 
-// 		lsl r9,#3						/*r9<-(WORD-1-j)*8*/	
-// 		lsl r10, r9	
-// 		orr r11,r10						/*r11(byte j)=INPUT[j+i*4]*/	
-// 				 
-// 		add r7,r7, #1
-// 		cmp r7, #WORD
-// 		blt loop_prs_j
-// 		/*end loop_prs_j*/
-//end_prs:
-// 		str r11, [r8,r5, lsl #2]
-// 		add r5,r5,#1
-// 		cmp r5, #INPUT_LENGTH_W
-// 		blt loop_prs_i
-// /*end loop_prs_i*/	
-//break_prs:
-end_parse: 		pop {r5, r6, r7, r8, r9, r10, r11, r12}
- 				bx lr
-
-	
-/* preprocess
- * I copy the content of input into processed putting 0s after its end and I add 1
- * after it.
- * for(int i=0; i<processed.length;i++){
- *	if(i<input.length){
- *		processed[i]=input[i];
- *	}else{
- *		processed[i]=0;
- *	}
- *} 
- */	
-preprocess:	
-		push {r5,r6,r7,r8} 
-		ldr r6, addr_input_w 			/*r6->input*/
-		ldr r8, addr_processed 			/*r8->processed*/
-		mov r5,#0 						/*r5=counter*/
-loop_PP:					
-		cmp r5, #INPUT_LENGTH_W
-		ldrlt r7,[r6,r5, lsl #2] 		/*if i<input.length r7<-input[i]*/
-		movge r7,#0 					/*else r7<-0*/
-		str r7,[r8,r5, lsl #2] 			/*processed[i]<-r7 ; i++*/	
-		add r5, r5, #1
-		cmp r5, #PRD_LENGTH_W
-		blt loop_PP						/*if i<process.length, next loop*/
-			
-		pop {r5,r6,r7,r8}
-		bx lr							/*return*/
 
 /*
  * startPadding
  * Add 1 at the start of the padding
  * processed(byte INPUT_LENGTH_B)=0x10
- *
+ *		   
 */
 startPadding:	
 		
 		push {r5, r6, r7, r8, r9, r10}
-		ldr r8, addr_processed 			/*r8->processed*/
-		mov r7, #INPUT_LENGTH_B+1		/*r7<- length in byte of input + 0b10000000*/		
+		ldr r8, ptr_addr_input 			
+		ldr r8,	[r8]					/*r8<-[input]*/
+		ldr r5, addr_input_length
+		ldr r5, [r5]					/*r5<-input_length*/
+		add r7, r5,#1					/*r7<- length in byte of input + 0b10000000*/		
 		lsr r7,#2						/*r7<- index of the word that we have to modify (from left to right)*/
-
-		mov r5, #INPUT_LENGTH_B 		
-		and r5, #0b00000011				/*r5= #INPUT_LENGTH_B MOD 4*/
-		rsb r5, r5, #3					/*r5= (3-#INPUT_LENGTH_B MOD 4)index of the byte in the word that has to be modified*/	
+		
+		and r5, #0b00000011				/*r5= input_length MOD 4*/
+		rsb r5, r5, #3					/*r5= (3-input_length MOD 4)index of the byte in the word that has to be modified*/	
 		lsl r5,#3						/*r5<- r5*8, number of left shifts of 0b10000000*/
 
 		ldr r9,[r8,r7, lsl #2]			/*Load the word that has to be modified*/		
@@ -198,17 +85,24 @@ startPadding:
  * 
 */
 fillEnd:
-		push {r5, r6, r7, r8}
+		push {r0, r5, r6, r7, r8, lr}
 
-		ldr r6, addr_processed
-		mov r5, #INPUT_LENGTH_B				
+		bl total_length						/*r0<-nWords(input)*/
+
+		ldr r6, ptr_addr_input
+		ldr r6, [r6]  						/*r6<-[input]*/
+		ldr r5, addr_input_length
+		ldr r5,[r5]							/*r5<-input_length*/
 		cmp r5, #0x1FFFFFFF					/*if the length in bits exceeds a word */
 		lsrgt r7, r5, #29					/*r7<-3 most significant bits of INPUT_LENGTH_B*8(bits)*/
-		strgt r7,[r6, #14*4]				/*r7->processed[14] */
+
+		subgt r8, r0, #2					/*r8=nWords(input)-2*/
+		strgt r7,[r6, r8, lsl #2]			/*r7->processed[nWords(input)-2] */
 		lsl r7, r5, #3						/*r7= 32 less significant bits of INPUT_LENGTH_B*8(bits)*/
-		str r7, [r6, #15*4]					/*r7->processed[15]*/
+		sub r8, r0, #1
+		str r7, [r6, r8, lsl #2]			/*r7->processed[nWords(input)-1]*/
 		
-		pop {r5, r6, r7, r8}
+		pop {r0, r5, r6, r7, r8, lr}
 		bx lr
 
 /*
@@ -219,6 +113,8 @@ fillEnd:
 processChunks:
 			push {r0, r5, r6, lr}
 			mov r5, #0					/* r5 counter*/
+			bl total_length
+			mov r6, r0					/*r6=number of words*/
 					
 loop_pChs:	
 			mov r0, r5, lsl #2			/*r0=chunck offset in processed */ 			
@@ -229,14 +125,36 @@ loop_pChs:
 			bl compress
 			bl updateHash
 			
-			add r5,r5,#16				
-			cmp r5, #PRD_LENGTH_W		
+			add r5,r5,#16
+bp:				
+			cmp r5, r6		
 			blt loop_pChs				/*if there are still chunks*/
 			
 			pop {r0, r5, r6, lr}
 			bx lr
 
-/*
+/*total_length
+ * OUTPUT:
+ * r0=length in bytes of the processed word (a multiple of 64 bytes - 512 bits)	
+*/ 
+total_length:
+bpt:
+			ldr r0, addr_input_length
+			ldr r0,[r0]						/*r6<-input_length*/
+			add r0, r0, #9					/*9 bytes= 8 bytes for the length of the word in bits+ 1 byte of padding*/
+
+			/*r0=floor(input_length-9)/64*/
+			sub r0, r0, #1					/*r0=r0-1, necessary to compute the floor of the division*/
+			lsr r0, r0, #6					/*r0=r0/64, 64 bytes = 512 bits*/
+
+			/*r0=r0*64+64*/
+			lsl r0, #6					
+			add r0, r0, #64	
+			
+			lsr r0, #2						/*r0=r0/4 from bytes to words*/	
+			bx lr
+
+/*						
  * copyProcessed
  * Copy in the first 16 words of message the words of chunck
  *
@@ -246,7 +164,8 @@ copyProcessed:
 			push {r5, r6, r7, r8}
 			
 			ldr r6, addr_message
-			ldr r7, addr_processed 		/*r7=base address of processed*/
+			ldr r7, ptr_addr_input 		
+			ldr r7, [r7]				/*r7=base address of processed*/
 			add r0, r0, r7				/*r0=chunk address*/	
 			
 			mov r5,#0					/*r5 counter*/
@@ -660,9 +579,6 @@ updateH:
 
 addr_hash: .word hash
 addr_k: .word k
-addr_input_b: .word input_b
-addr_input_w: .word input_w
-addr_processed: .word processed
 addr_message: .word message
 addr_a: .word a
 addr_b: .word b
@@ -672,6 +588,5 @@ addr_e: .word e
 addr_f: .word f
 addr_g: .word g
 addr_m: .word m
-addr_string: .word string
 ptr_addr_input: .word addr_input
 addr_input_length: .word input_length
