@@ -3,7 +3,7 @@
 all: sha512
 
 sha512: sha512.c sha512.o 
-	gcc -static -o $@ $+
+	gcc -o $@ $+
 
 sha512.o : sha512.s
 	as -o $@ $<

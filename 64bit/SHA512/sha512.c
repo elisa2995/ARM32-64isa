@@ -21,6 +21,8 @@ void initBuffer(char *buffer_ptr, int start_point);
 void printHash(char *hash_ptr);
 
 void printInput(char *input_ptr);
+
+void printAsm(double var);
 int main(){
 
 	int buffer_length, i =0, k=1;
@@ -121,4 +123,10 @@ void printInput(char *input_ptr){
 		printf("%x", input_ptr[i]);
 	}
 	printf("\n");
+}
+/*printAsm
+ *prints the value of var
+*/
+void printAsm(double var){
+  //printf("%x", var);
 }
