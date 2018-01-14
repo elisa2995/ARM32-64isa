@@ -28,8 +28,6 @@ f: .dword 0
 g: .dword 0
 .balign 8
 m: .dword 0
-	
-	
 
 .text
 .globl mainAsm
@@ -65,7 +63,7 @@ mainAsm:
 /*
 * startPadding
 * Add 1 at the start of the padding
-* processed_input(byte INPUT_LENGTH_B)=0b10000000
+* processed_input[input length]=0b10000000
 *		   
 */
 startPadding:
@@ -103,7 +101,7 @@ startPadding:
 
 /*
  * fillEnd 
- * Copy the length of input_w expressed as 128 bit big endian 
+ * Copy the length of the processed input expressed as 128 bit big endian 
  * 
 */
 fillEnd:
@@ -290,7 +288,7 @@ bpEnd:
 	ret
 	
 /*initAlphabeth
- *Initializes the letters a to  with hash values (a=hash[0], b=hash[1]....)
+ *Initializes the letters a to m with hash values (a=hash[0], b=hash[1]....)
  * 
 */
 initAlphabeth:
@@ -383,7 +381,7 @@ loop_cpr:
 	ret
 
 /*make_temp1 
- * computes temp1:
+ * Computes temp1:
  * S1 := (e rightrotate 14) xor (e rightrotate 18) xor (e rightrotate 41)
  * ch := (e and f) xor ((not e) and g)
  * temp1 := m + S1 + ch + k[i] + message[i]
@@ -439,8 +437,8 @@ makeTemp1:
 				
 	ret
 
-/*make_temp2
- * computes temp2:
+/*makeTemp2
+ * Computes temp2:
  *	S0 := (a rightrotate 28) xor (a rightrotate 34) xor (a rightrotate 39)
  *  maj := (a and b) xor (a and c) xor (b and c)
  *  temp2 := S0 + maj
@@ -586,37 +584,37 @@ updateHash:
 	bl updateH
 
 	/*h[1]+=b*/
-	add x0, x0, #1		
+	mov x0, #1		
 	ldr x1, addr_b	
 	bl updateH
 
 	/*h[2]+=c*/
-	add x0, x0, #1		
+	mov x0, #2		
 	ldr x1, addr_c	
 	bl updateH
 
 	/*h[3]+=d*/
-	add x0, x0, #1		
+	mov x0, #3		
 	ldr x1, addr_d	
 	bl updateH
 
 	/*h[4]+=e*/
-	add x0, x0, #1		
+	mov x0, #4		
 	ldr x1, addr_e	
 	bl updateH
 
 	/*h[5]+=f*/
-	add x0, x0, #1		
+	mov x0, #5		
 	ldr x1, addr_f	
 	bl updateH
 
 	/*h[6]+=g*/
-	add x0, x0, #1		
+	mov x0, #6		
 	ldr x1, addr_g	
 	bl updateH
 
 	/*h[7]+=m*/	
-	add x0, x0, #1		
+	mov x0, #7		
 	ldr x1, addr_m	
 	bl updateH
 
