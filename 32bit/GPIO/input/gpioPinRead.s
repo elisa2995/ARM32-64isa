@@ -46,7 +46,7 @@ gpioPinRead:
 		lsr		r2, r2, r1		@ move the pin of interest in the lowest bit of the register
 		and 	r2, r2, 0x1		@ keep only the bit of interest		
         
-        mov     r0, r2          @ return 0;
+        mov     r0, r2          @ return if the pin is high/low;
 
         ldr     r4, [sp, 0]     @ restore r4
         ldr     r5, [sp, 4]     @      r5

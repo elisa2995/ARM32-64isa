@@ -103,24 +103,8 @@ loop:
 		bl gpioPinRead
 		subs    r6, r6, 1       @ decrement counter
         bgt     loop            @ loop until 0
-//
-//        mov     r6, 5           @ blink five times
-//loop:
-//        mov     r0, r5          @ GPIO programming memory
-//        mov     r1, PIN17
-//        bl      gpioPinClr
-//
-//        mov     r0, ONE_SEC     @ wait a second
-//        bl      sleep
-//        mov     r0, r5
-//        mov     r1, PIN17
-//        bl      gpioPinSet
-//
-//        mov     r0, ONE_SEC     @ wait a second
-//        bl      sleep
-//        subs    r6, r6, 1       @ decrement counter
-//        bgt     loop            @ loop until 0
-        
+
+unmap:        
         mov     r0, r5          @ memory to unmap
         mov     r1, PAGE_SIZE   @ amount we mapped
         bl      munmap          @ unmap it
