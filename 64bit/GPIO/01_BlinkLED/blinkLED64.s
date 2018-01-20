@@ -1,9 +1,8 @@
-// buttonLED64.s
-// Blinks 5 times a LED connected to pin 26 as soon as a button connected
-// to pin 17 is pressed.
+// blinkLED64.s
+// Blinks 5 times a LED connected to pin 26 
 
 // Define my Raspberry Pi
-        .cpu    cortex-a53 
+        .cpu    cortex-a53
 		        
 // Constants for assembler
         .equ    PERIPH,0x3f000000   	// RPi 2 & 3 peripherals
@@ -25,13 +24,11 @@
         .equ    O_FLAGS,O_RDWR|O_SYNC 	// open file flags
         .equ    PROT_RDWR,PROT_READ|PROT_WRITE
         .equ    NO_PREF,0
-        .equ    PAGE_SIZE,4096  		// Raspbian memory page
+        .equ    PAGE_SIZE,4096  		// memory page
         .equ    INPUT,0         		// use pin for input
         .equ    OUTPUT,1        		// use pin for ouput
-        .equ    ONE_MS,1000       		// one ms	[us]
-		.equ	ONE_SEC, 1				// one second [s]
-        .equ    PIN_BTN, 17        		// button pin (input)
-		.equ	PIN_LED, 26				// LED pin (output)
+        .equ    ONE_SEC,1       		// sleep one second
+        .equ    PIN_LED,26      		// LED pin
 
 // Constant program data	   	
         .section .rodata
@@ -47,9 +44,9 @@ memErr:
         .text
         .align  4				// $
         .global main									  	   
-main:															  						
+main:																		
 		stp x30, x29, [sp, #-16]!		// push {lr, fp} $ 		
-		stp x19, x20, [sp, #-16]!		// push {x19, x20} $  		  
+		stp x19, x20, [sp, #-16]!		// push {x19, x20} $  		 
 		stp x21, x22, [sp, #-16]!		// push {x21, x22} $		 
 
 // Open /dev/mem for read/write and syncing        
@@ -77,23 +74,16 @@ gpiomemOK:
         bne     mmapOK          		// no error, continue
         ldr     x0, memErrAddr 			// error, tell user
         bl      printf
-        b       closeDev    		    // and close /dev/mem
+        b       closeDev        		// and close /dev/mem
 											
 		
         				  
-// All OK, setup button pin and LED pin functions
+// All OK, set up the LED
 mmapOK:         															         
         mov     x20, x0         		// use x20 for programming memory address
 
-		// Set pin17 as input
-        mov     x0, x20        			// GPIO programming memory
-        mov     x1, #PIN_BTN      		// button pin
-        mov     x2, #INPUT      		// it's an input
-        bl      gpioPinFSelect  		// select function
-
-		// Set pin26 as output
-		mov     x0, x20         		// GPIO programming memory
-        mov     x1, #PIN_LED      		// LED pin
+        mov     x0, x20         		// programming memory
+        mov     x1, #PIN_LED       		// pin to blink
         mov     x2, #OUTPUT      		// it's an output
         bl      gpioPinFSelect  		// select function
 
@@ -102,44 +92,34 @@ mmapOK:
         mov     x1, #PIN_LED	 		// LED pin
         bl      gpioPinSet		 		// pull up the pin 
 
-// Loop until the button is pressed        
-loop:
-		mov 	x0, x20			 		// GPIO programming memory
-		mov 	x1, #PIN_BTN		 	// pin to read
-		bl 		gpioPinRead
-		mov 	x21, x0			 		// level of the pin
-		mov     x0, #ONE_MS    			// wait 1 ms
-        bl      usleep
-		cmp 	x21, #1			 		//	x21=1 if the button is pressed
-		bne     loop            		// loop until the button is pressed 
-
-// As the button is pressed, blink the LED 5 times
-		mov 	x21, #5
+// Blink the LED 5 times
+        mov     x21, #5         		// blink five times
 blink:
         mov     x0, x20         		// GPIO programming memory
-        mov     x1, #PIN_LED	 		// LED pin
-        bl      gpioPinClr				// pull down the pin
+        mov     x1, #PIN_LED			// pin to blink
+        bl      gpioPinClr				// pull down the pin  (turn the LED on)
 
-        mov     x0, #ONE_SEC    		// wait a second
-        bl      sleep
-        mov     x0, x20			 		// GPIO programming memory
-        mov     x1, #PIN_LED	 		// LED pin
-        bl      gpioPinSet		 		// pull up the pin 
-
-		mov     x0, #ONE_SEC     		// wait a second
+        mov     x0, #ONE_SEC     		// wait a second
         bl      sleep
 
-		subs	x21, x21, #1
-		bne		blink
+        mov     x0, x20			  		// GPIO programming memory
+        mov     x1, #PIN_LED	  		// pin to blink
+        bl      gpioPinSet		  		// pull up the pin (turn the LED off)
+
+	    mov     x0, #ONE_SEC     		// wait a second
+        bl      sleep
+
+        subs    x21, x21, #1     		// decrement counter
+        bgt     blink            		// loop until 0
 
 // Unmap the memory        
-        mov     x0, x20        			// memory to unmap
+        mov     x0, x20         		// memory to unmap
         mov     x1, #PAGE_SIZE   		// amount we mapped
         bl      munmap          		// unmap it
 
 closeDev:
         mov     x0, x19         		// /dev/mem file descriptor
-        bl      close          			// close the file
+        bl      close           		// close the file
 
 allDone:        
         mov     x0, #0           		// return 0;
@@ -148,7 +128,7 @@ allDone:
 		ldp 	x19, x20, [sp], #16		//pop {x19, x20} $ 
 		ldp 	x30, x29, [sp], #16		//pop {lr, fp}   $ 
 
-        ret			            		// return
+        ret			            // return
         
         .align  4
 // addresses of messages
