@@ -3,7 +3,7 @@
 // The sensor has to be triggered at least 10 us, it will then start 
 // sending ultrasound waves and pulls the echo pin up.
 // As the sensor receives the echo it pulls the echo pin down.
-// The programe ends when the echo is received, printing "Received echo"
+// The programe ends when the echo is received, printing "Echo receivec"
 // on the screen.
 
 // Define my Raspberry Pi
