@@ -65,7 +65,7 @@ input_length:
 @		bl mainAsm
 @	or mainAsm(char *input_address, int length);
 mainAsm:
-		push	{lr} 
+		push	{r4, lr} 
 @ Save input address and input length 
 		ldr 	r2, ptr_addr_input		 		
 		str 	r0, [r2]					@ input address->addr_input 
@@ -83,7 +83,7 @@ mainAsm:
 		ldr 	r0, addr_hash
 		bl 		printHash
 
-		pop 	{lr}
+		pop 	{r4, lr}
 		bx 		lr
 
 @ startPadding
