@@ -6,6 +6,7 @@
 */
 #include <stdio.h> 
 #include <stdlib.h>
+#include <time.h>
 
 #define INPUT_LENGTH 64	// initial buffer size
 #define WORD 4		   	// number of bytes of a word
@@ -24,7 +25,8 @@ int main(){
 
 	int buffer_length, i =0, k=1;
 	char tmp;
-	char *buffer=(char *)malloc(sizeof(char)*INPUT_LENGTH);
+	clock_t start, end;
+	char *buffer=malloc(sizeof(char)*INPUT_LENGTH);
 
 	initBuffer(buffer, 0);
 	printf ("Insert the string you want to hash \n");
@@ -34,7 +36,7 @@ int main(){
 		// If the input exceeds the allocated memory, allocate more memory
 		if(i+EXTRA_BYTES>INPUT_LENGTH*k){
 			k++;
-			buffer=(char *)realloc(buffer, sizeof(char)*INPUT_LENGTH*k);
+			buffer=realloc(buffer, sizeof(char)*INPUT_LENGTH*k);
 			initBuffer(buffer, INPUT_LENGTH*(k-1));
 		}
 
@@ -44,7 +46,12 @@ int main(){
 
 	buffer_length=length(buffer);
 	invertChars(buffer, buffer_length);
+
+	start = clock();
 	mainAsm(buffer, buffer_length);
+	end = clock();
+	printf("Elapsed time %f us \n",(double)((end - start)*1000000.0) / CLOCKS_PER_SEC);
+
 	free(buffer);
 
 	return 0;
