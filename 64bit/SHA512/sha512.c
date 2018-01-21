@@ -1,13 +1,19 @@
+/* Entry point of the program. Reads the input string and 
+ * saves it in a big endian format. It then calls the assembly
+ * program that implements the logic of the SHA512 algorithm. 	
+*/
 #include <stdio.h>
 #include <stdlib.h>
-#define INPUT_LENGTH 128
-#define DWORD 8	//bytes of a double word
-#define HASH_LENGTH 64 //bytes
+
+#define INPUT_LENGTH 128	// initial buffer size
+#define DWORD 8				// number of bytes of a double word
+#define HASH_LENGTH 64 		// bytes
+#define	EXTRA_BYTES 17		// we will append to the input at least 1 bytes of padding + 16 bytes 
+							// containing the length of the input expressed in bits
 
 void mainAsm(char *inputString, int length);
 void invertChars(char *inputString, int buffer_length);
 int length(char *buffer_ptr);
-void invertLastWord(char *buffer_ptr, int buffer_length);
 void initBuffer(char *buffer_ptr, int start_point);
 void printHash(char *hash_ptr);
 
@@ -23,7 +29,7 @@ int main(){
 	while((tmp=getchar())!='\n'){
 
 		// If the input exceeds the allocated memory, allocates more memory
-		if(i+17>INPUT_LENGTH*k){
+		if(i+EXTRA_BYTES>INPUT_LENGTH*k){
 			k++;
 			buffer=(char *)realloc(buffer, sizeof(char)*INPUT_LENGTH*k);
 			initBuffer(buffer, INPUT_LENGTH*(k-1));
@@ -35,15 +41,15 @@ int main(){
 
 	buffer_length=length(buffer);
 	invertChars(buffer, buffer_length);
-	mainAsm(buffer, buffer_length-1);
-	//printInput(buffer);
+	mainAsm(buffer, buffer_length);
 	free(buffer);
 
 	return 0;
 }
 
 /* initBuffer
- * Initializes a buffer of input length INPUT_LENGTH, setting all its characters to 0
+ * Sets to 0 INPUT_LENGTH charactersof the buffer pointed by 
+ * buffer_ptr, starting from startPoint
  */
 void initBuffer(char *buffer_ptr, int start_point){
 	for(int i=start_point; i<start_point+INPUT_LENGTH; i++){
@@ -51,27 +57,26 @@ void initBuffer(char *buffer_ptr, int start_point){
 	}
 }
 
-/*invertChars
- *Inverts the order of the chars within a word (8 by 8).
+/* invertChars
+ * Inverts the order of the chars within a dword (8 by 8),
+ * so that we can work in big endian.
 */
 
 void invertChars(char *buffer_ptr, int buffer_length){
 
 	char tmp;
-	int i;
-	for(i = 0; i<=(buffer_length-1)/DWORD; i++){
+	for(int i = 0; i<=(buffer_length)/DWORD; i++){
 		for(int j = 0; j<DWORD/2; j++){
 			tmp = buffer_ptr[i*DWORD+j];
 			buffer_ptr[i*DWORD+j]=buffer_ptr[DWORD*(i+1)-j-1];
 			buffer_ptr[DWORD*(i+1)-j-1]=tmp;
 		}
-	}
-	
+	} 	
 }
 
 
 /* length
- * Returns the length of the string (WITH termination character '\0').
+ * Returns the length of the string (WITHOUT termination character '\0').
 */
 
 int length(char *buffer_ptr){
@@ -81,19 +86,18 @@ int length(char *buffer_ptr){
 	while(buffer_ptr[count]!='\0'){
 		count++;
 	}
-
-	count++;
-
 	return count;
 
 }
 
-/*printHash
- *Prints the hash
+/* printHash
+ * Prints the hash pointed by hash_ptr.
+ * (Called by sha512.s)
 */
 void printHash(char *hash_ptr){
-	for(int i = 0; i<HASH_LENGTH/DWORD; i++){
-		for(int j=0; j<DWORD;j++){
+
+	for(int i = 0; i<HASH_LENGTH/DWORD; i++){ 		
+		for(int j=0; j<DWORD;j++){ 
 			printf("%02x", hash_ptr[i*DWORD+(DWORD-1-j)]);
 		}
 		printf(" ");

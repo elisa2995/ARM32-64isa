@@ -21,7 +21,7 @@
         .equ    MAP_SHARED,0x01 		// share changes
 
 // The following are defined by me:
-        .equ    O_FLAGS,O_RDWR|O_SYNC 	// open file flags
+        .equ	O_FLAGS,O_RDWR|O_SYNC 	// open file flags
         .equ    PROT_RDWR,PROT_READ|PROT_WRITE
         .equ    NO_PREF,0
         .equ    PAGE_SIZE,4096  		// memory page
