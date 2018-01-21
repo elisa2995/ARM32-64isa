@@ -1,14 +1,22 @@
+/**
+* Entry point of the program. Reads the input string
+* and saves it in a big endian format. 
+* It then calls the assembly program that implements the
+* logic of the SHA256 algorithm. 
+*/
 #include <stdio.h> 
 #include <stdlib.h>
 
-#define INPUT_LENGTH 64	
-#define WORD 4		   
-#define HASH_LENGTH 32 //bytes
+#define INPUT_LENGTH 64	// initial buffer size
+#define WORD 4		   	// number of bytes of a word
+#define HASH_LENGTH 32  // bytes
+#define	EXTRA_BYTES 9	// we will append to the input al least 1 byte 
+						// of padding and 8 bytes containing the length 
+						// of the input expressed in bits
 
 void mainAsm(char *inputString, int length);  
 void invertChars(char *inputString, int buffer_length);
 int length(char *buffer_ptr);							
-void invertLastWord(char *buffer_ptr, int buffer_length); 
 void initBuffer(char *buffer_ptr, int start_point);		   
 void printHash(char *hash_ptr);
 
@@ -23,8 +31,8 @@ int main(){
 
 	while((tmp=getchar())!='\n'){
 
-		// If the input exceeds the allocated memory, allocates more memory
-		if(i+9>INPUT_LENGTH*k){
+		// If the input exceeds the allocated memory, allocate more memory
+		if(i+EXTRA_BYTES>INPUT_LENGTH*k){
 			k++;
 			buffer=(char *)realloc(buffer, sizeof(char)*INPUT_LENGTH*k);
 			initBuffer(buffer, INPUT_LENGTH*(k-1));
@@ -36,22 +44,32 @@ int main(){
 
 	buffer_length=length(buffer);
 	invertChars(buffer, buffer_length);
-	mainAsm(buffer, buffer_length-1);
+	mainAsm(buffer, buffer_length);
 	free(buffer);
 
 	return 0;
 }
 
-/*invertChars
- *Inverts the order of the chars within a word (4 by 4).
+
+/* initBuffer
+ * Sets to 0 INPUT_LENGTH charactes of the buffer pointed by buffer_ptr,
+ * starting from start_point.
+ */
+void initBuffer(char *buffer_ptr, int start_point){
+
+	for(int i=start_point; i<start_point+INPUT_LENGTH; i++){
+		buffer_ptr[i]='\0';
+	}
+}
+
+/** invertChars(char *buffer_ptr, int buffer_length)
+ * Inverts the order of the chars within a word (4 by 4), so that we 
+ * can work in big endian.
 */
-
 void invertChars(char *buffer_ptr, int buffer_length){
-
+	
 	char tmp;
-	int i;
-
-	for(i = 0; i<=(buffer_length-1)/WORD; i++){
+	for(int i = 0; i<=(buffer_length)/WORD; i++){
 
 		for(int j = 0; j<WORD/2; j++){
 			tmp = buffer_ptr[i*WORD+j];
@@ -61,43 +79,28 @@ void invertChars(char *buffer_ptr, int buffer_length){
 	} 
 }
 
-
-/* length(char *buffer_ptr)
- * Returns the length of the string (WITH termination character '\0').
+/** length(char *buffer_ptr)
+ * Returns the length of the string (WITHOUT termination character '\0').
 */
-
 int length(char *buffer_ptr){
 
 	int count = 0;
-
 	while(buffer_ptr[count]!='\0'){
 		count++;
 	}  
-	count++;
 
 	return count;
-
 }
 
 
-/* initBuffer
- * Initialize the buffer with INPUT_LENGTH '\0'
- */
-
-void initBuffer(char *buffer_ptr, int start_point){
-
-	for(int i=start_point; i<start_point+INPUT_LENGTH; i++){
-		buffer_ptr[i]='\0';
-	}
-}
-/*printHash
- *Prints the hash
+/** printHash
+ * Prints the hash pointed by hash_ptr.
+ * (called by sha256.s)
 */
 void printHash(char *hash_ptr){
 	for(int i = 0; i<HASH_LENGTH/WORD; i++){
 		for(int j=0; j<WORD;j++){
 			printf("%02x", hash_ptr[i*WORD+(WORD-1-j)]);
-			//printf("%02x", hash_ptr[i*WORD+j]);
 		}
 		printf(" ");
 	}	  

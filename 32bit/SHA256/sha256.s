@@ -73,7 +73,7 @@ mainAsm:
 		str 	r1, [r2]					@ input length->input_length 
 	
 @ Preprocessing, at the end of this phase we have a processed input (input + padding + length in bits expressed with 64 bits)
-		bl	startPadding
+		bl		startPadding
 		bl 		fillEnd						
 
 @ Compression 
@@ -99,7 +99,7 @@ startPadding:
 		ldr 	r8,	[r8]					@ r8<-[input] 
 		ldr 	r5, addr_input_length
 		ldr 	r5, [r5]					@ r5<- input_length 
-		add 	r7, r5,#1					@ r7<- length in byte of input + 0b10000000 		
+		mov		r7, r5		
 		lsr 	r7,#W_SHIFT					@ r7<- index of the word that we have to modify (from left to right) 
 		
 		and 	r5, #0b00000011				@ r5= input_length MOD 4 
@@ -608,12 +608,14 @@ updateHash:
 @		bl updateH
 updateH:
 		push	{r5, r6}
+		
 		ldr 	r5, addr_hash
 		ldr 	r1, [r1] 					@ r1<-letter 
 		ldr 	r6, [r5, r0, lsl #W_SHIFT] 	@ r6<-hash[i] 
 		add 	r6, r6, r1					@ r6=hash[i]+letter 
 		str 	r6,[r5, r0, lsl #W_SHIFT]	@ hash[i]+letter->hash[i] 
-		pop		{r5, r6}
+		
+pop		{r5, r6}
 		bx 		lr
 		
 		.balign WORD

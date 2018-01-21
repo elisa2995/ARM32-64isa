@@ -26,7 +26,7 @@
 @       bl gpioPinFSelect
 gpioPinFSelect:
 		push	{r4, r5, r6, lr}
-		        
+        
         mov     r4, r0          	@ save pointer to GPIO
         mov     r5, r1          	@ save pin number
         mov     r6, r2          	@ save function code
