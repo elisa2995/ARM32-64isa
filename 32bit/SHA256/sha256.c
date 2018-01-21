@@ -58,7 +58,7 @@ void invertChars(char *buffer_ptr, int buffer_length){
 			buffer_ptr[i*WORD+j]=buffer_ptr[WORD*(i+1)-j-1];
 			buffer_ptr[WORD*(i+1)-j-1]=tmp;
 		}
-	}
+	} 
 }
 
 
@@ -97,6 +97,7 @@ void printHash(char *hash_ptr){
 	for(int i = 0; i<HASH_LENGTH/WORD; i++){
 		for(int j=0; j<WORD;j++){
 			printf("%02x", hash_ptr[i*WORD+(WORD-1-j)]);
+			//printf("%02x", hash_ptr[i*WORD+j]);
 		}
 		printf(" ");
 	}	  
