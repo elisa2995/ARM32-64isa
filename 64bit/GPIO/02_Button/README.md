@@ -7,8 +7,7 @@ The goal of this program is decrementing a counter each time a button is pressed
 <table>
 <tr>
 <td width="50%">The following images show how you have to connect the button to the board to let the program work. You have to connect three wires. The first goes from one leg of the button through a resistor (here 220 Ohm) to ground. The second goes from the corresponding leg of the button to Vcc (3,3 V). The third connects the first leg of the button to pin17 which reads the state of the button. When the button is open (unpressed) there is no connection between the two legs of the button, so the pin is connected to ground (through the resistor) and we read a LOW.
-<br> When the button is closed (pressed), it makes a connection between its two legs, connecting the pin to Vcc, so that we read a HIGH.
-<br>Notice that at the beginning the voltage of the pin is floating, therefore it may happen that your button is already at a level HIGH before the program even starts. It's important to initialize the pin to GND so that at the beginning the button is at level LOW.</td>
+<br> When the button is closed (pressed), it makes a connection between its two legs, connecting the pin to Vcc, so that we read a HIGH.</td>
 <td><a href="https://github.com/elisa2995/ARM32-64isa/blob/master/media/02_Button.png"><img src="https://github.com/elisa2995/ARM32-64isa/blob/master/media/02_Button.png"></a></td>
 <td width="15%"><a href="https://github.com/elisa2995/ARM32-64isa/blob/master/media/02_ButtonCircuit.png"><img src="https://github.com/elisa2995/ARM32-64isa/blob/master/media/02_ButtonCircuit.png"></a></td>
 </tr>
@@ -20,14 +19,13 @@ In this program we need to :
 <ol>
 <li>Map the GPIO memory to a main memory location so that we can access it (see <a href="https://github.com/elisa2995/ARM32-64isa/wiki/GPIO-01_BlinkLED#mapping">blinkLED - Mapping the GPIO memory to a main memory location</a> explanation)</li>
 <li>Configure the pin function to input (see <a href="https://github.com/elisa2995/ARM32-64isa/wiki/GPIO-01_BlinkLED#configure">blinkLED - Configure the pin function</a> explanation)</li>
-<li>Initialize the voltage of the pin to GND (see <a href="https://github.com/elisa2995/ARM32-64isa/wiki/GPIO-01_BlinkLED/_edit">blinkLED</a> explanation)</li>
 <li>Read the state of the button and decrement consequently a counter</li>
 </ol>
 
 <h3 id="readState"> Read the state of a pin </h3>
 The implementation of the read function is made in gpioPinRead.s files (<a href="https://github.com/elisa2995/ARM32-64isa/blob/master/32bit/GPIO/02_Button/gpioPinRead32.s">32bit</a>, <a href="https://github.com/elisa2995/ARM32-64isa/blob/master/64bit/GPIO/02_Button/gpioPinRead64.s">64bit</a>).
-These functions need as input the address of the GPIO in mapped memory and the number of the pin of which you want to read the state.<br>
-First of all, you have to find the address of GPLEV0-GPLEV1 registers, the registers in which there is saved the state of the pins (see <a href="https://github.com/elisa2995/ARM32-64isa/wiki/GPIO#pinSetting">GPIO introduction</a>). To do so you simply have to add the offset of GPLEV (you can find it on Broadcom documentation) to the GPIO address in mapped memory.
+This function needs as input the address of the GPIO in mapped memory and the number of the pin of which you want to read the state.<br>
+First of all, you have to find the address of GPLEV0-GPLEV1 registers, the registers in which the states of the pins are saved (see <a href="https://github.com/elisa2995/ARM32-64isa/wiki/GPIO#pinSetting">GPIO introduction</a>). To do so you simply have to add the offset of GPLEV (you can find it in Broadcom documentation) to the GPIO address in mapped memory.
 
 <table>
 <tr>
@@ -70,7 +68,11 @@ add x15, x15, x19     // address of GPSETn,
 </tr>
 </table>
 
-The only thing left to do is reading the state of the pin of interest so we load the entire register and we shift it right to have the bit that indicates that state in the first position. After this, we do an AND operation with the mask 0x1. In this way, we obtain the value we are looking for.
+The only thing left to do is reading the state of the pin of interest. To do so we load the entire register of which we want to retrieve a single bit (suppose it is bit N), and for this purpose, we perform N shifts right on the register: in this way we put the bit of interest in the less significant bit of the word.
+<a href="https://github.com/elisa2995/ARM32-64isa/blob/master/media/PinRead01.png"><img src="https://github.com/elisa2995/ARM32-64isa/blob/master/media/PinRead01.png"></a>
+At this point, we need to clear all the other bits in the registers: therefore we perform AND operation with the mask 0x1. In this way, we obtain the value we are looking for.
+<a href="https://github.com/elisa2995/ARM32-64isa/blob/master/media/PinRead02.png"><img src="https://github.com/elisa2995/ARM32-64isa/blob/master/media/PinRead02.png"></a>
+
 It is important to notice that in AArch64 the load is performed with the instruction <code>ldrsw   x17, [x15]</code>. <br><code>ldrsw   Xn, [Xm]</code> is a very useful instruction that you can use when you need to retrieve only a word (32 bit) from the memory. In fact, it goes to the address specified by Xm, that can also not be a multiple of 8 bytes(normal <code>ldr</code> gives segmentation fault with this type of addresses) and retrieves only a word that is saved in the lowest part of Xn, so Wn.
 
 <table>
@@ -98,12 +100,12 @@ mov w0, w17       // return if the pin is high/low
 </table>
 
 The function gpioPinRead is called from the main function in both implementations (<a href="https://github.com/elisa2995/ARM32-64isa/blob/master/32bit/GPIO/02_Button/button32.s">32bit</a>, <a href="https://github.com/elisa2995/ARM32-64isa/blob/master/64bit/GPIO/02_Button/button64.s">64bit</a>).
-In the main there are two loop:
+In the main there are two loops:
 <ul>
-<li>an outer loop (countLoop) that  each time the button is pushed print on screen the value od the counter and decrement it</li>
-<li>an inner loop (readAgain) that keeps reading the state of the button and ends only when an HIGH level is being detected</li>
+<li>an outer loop (countLoop) that  each time the button is pushed prints on screen the value od the counter and decrements it</li>
+<li>an inner loop (readAgain) that keeps reading the state of the button and ends only when an HIGH level is detected</li>
 </ul>
-There are no important differences btween the implementations in the two architectures.
+The implementations in the two architectures are pretty much the same.
 <table>
 <tr>
 <th><a href="https://github.com/elisa2995/ARM32-64isa/blob/master/32bit/GPIO/02_Button/button32.s">32 bit</a></th>
