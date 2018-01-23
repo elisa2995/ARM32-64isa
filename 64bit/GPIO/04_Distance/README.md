@@ -1,5 +1,5 @@
 <h1>Distance</h1>
-This whole content can be found in the <a href="https://github.com/elisa2995/ARM32-64isa/wiki/GPIO-02_Distance/">wiki</a> of the project. 
+This whole content can be found in the <a href="https://github.com/elisa2995/ARM32-64isa/wiki/GPIO-04_Distance/">wiki</a> of the project. 
 <br>
 The aim of this program is to use an ultrasound distance sensor to detect objects. The source code can be found <a href="https://github.com/elisa2995/ARM32-64isa/tree/master/32bit/GPIO/04_Distance">here32</a> or <a href="https://github.com/elisa2995/ARM32-64isa/tree/master/64bit/GPIO/04_Distance">here 64</a>.
 <h3>Setup</h3>
