@@ -1,5 +1,5 @@
-<h1>BlinkLED</h1>
-This whole content can be found in the <a href="https://github.com/elisa2995/ARM32-64isa/wiki/GPIO-05_DistanceTimer/">wiki</a> of the project. <br>
+<h1>DistanceTimer</h1>
+This whole content can be found in the <a href="https://github.com/elisa2995/ARM32-64isa/wiki/GPIO-05-DistanceTimer">wiki</a> of the project. <br>
 This program integrates the program <a href="https://github.com/elisa2995/ARM32-64isa/wiki/GPIO-04_Distance">04_Distance</a>, exploiting the functionalities of the System Timer. In fact,  counting the time between the moment in which the ultrasonic wave is sent and the echo is received back, it's possible to calculate the distance of the object.
 
 <h3>Setup</h3>
