@@ -1,3 +1,4 @@
+<h2>DistanceTimer</h2>
 This program integrates the program <a href="https://github.com/elisa2995/ARM32-64isa/wiki/GPIO-04_Distance">04_Distance</a>, exploiting the functionalities of the System Timer. In fact,  counting the time between the moment in which the ultrasonic wave is sent and the echo is received back, it's possible to calculate the distance of the object. This program can also be used to see how polling performance is affected by high CPU workloads (<a href="#poll">here</a>).  
 
 <h3>Setup</h3>
