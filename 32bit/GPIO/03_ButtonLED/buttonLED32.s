@@ -98,6 +98,7 @@ mmapOK:
         mov     r1, #PIN_LED			@ LED pin
         bl      gpioPinSet				@ pull up the pin
 
+
 @ Loop until the button is pressed
 loop:
         mov 	r0, r5			 		@ GPIO programming memory

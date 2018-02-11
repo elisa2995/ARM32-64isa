@@ -23,9 +23,15 @@
 @ The following are defined by us:
         .equ    INPUT,0         	@ use pin for input
         .equ    OUTPUT,1        	@ use pin for ouput
-        .equ    PIN_ECHO,11		    @ pin input	(echo of the sensor)
-		.equ    PIN_TRIG,26        	@ pin output (trigger) 
-		.equ	TEN_MS, 10000		@ wait time between 2 measures
+        .equ    PIN_ECHO,11		@ pin input(echo of the sensor)
+	.equ    PIN_TRIG,26        	@ pin output (trigger) 
+	.equ	SIXTY_MS, 60000		@ wait time between 2 measures
+	.equ	W_SHIFT, 2		@ number of shifts to convert bytes to words
+	
+	.data
+	.align 2
+measures:
+	.word	0,0,0,0,0,0,0,0
 @ Constant program data
         .section .rodata
         .align  2
@@ -41,6 +47,7 @@ distMessage:
         .text
         .align  2
         .global main
+        .global saveMeasures
         .type   main, %function
 main:
 		push	{r4, r5, r6, r7, r8, r9, r10, lr}
@@ -87,7 +94,7 @@ mmapOK:
         mov     r2, OUTPUT      	@ it's an output
         bl      gpioPinFSelect  	@ select function
 		
-		mov		r10, #10
+	mov	r10, #8 		@ 8 measures
 		
 @ Trigger the sensor by setting the trigger pin to 1 for at least 10 us 
 trigger:
@@ -139,21 +146,39 @@ waitEcho:
 @ distance, the maximum elapsed time will be 
 @ (maxDistance*2)/soundSpeed = (4m * 2) /(340m/s)= 23530 us = 0x5bea us. 
 @ Therefore the highest part of the elapsed time will always be 0.
-		mov		r0, r6			
-		bl		convToDistance
-		mov		r6, r0
+		@mov		r0, r6			
+		@bl		convToDistance
+		@mov		r6, r0
+		@ldr		r0, distMessageAddr @ message
+		@mov		r1, r6				@ distance
+		@bl		printf
+		
+		sub		r10, r10, #1
+		ldr 		r1, measuresAddr
+		str 		r6, [r1, r10, lsl #W_SHIFT]	@ save the measure
+		
+		mov		r0, #SIXTY_MS			@ wait for 60 ms
+		bl		delay
+		cmp 		r10, #0
+		bne		trigger
+
+@ Calculate the average measure and the corresponding distance
+		ldr 		r0, measuresAddr
+		bl 		computeAverage				
+		bl 		convToDistance
+		mov 		r6, r0
 		ldr		r0, distMessageAddr @ message
 		mov		r1, r6				@ distance
 		bl		printf
-
-		mov		r0, #TEN_MS			@ wait for 10 ms
-		bl		delay
-
-		subs	r10, r10, #1
-		bne		trigger
+		
+@ Save measures into a file
+		ldr 		r0, measuresAddr
+		mov		r1, #8
+		bl 		saveMeasures
+		
 
 @ Unmap and close the device
-		mov 	r0, r5				@ memory to unmap
+		mov 		r0, r5				@ memory to unmap
 		mov		r1, r4				@ file descriptor (/dev/gpio)
 		bl		closeDevice 
 
@@ -165,20 +190,48 @@ allDone:
 		pop		{r4, r5, r6, r7, r8, r9, r10, lr}
 		bx		lr
 
+@ computeAverage
+@ Computes the average measure 
+@ Calling sequence:
+@		r0 <- address of the array of measures
+@ 		bl computeAverage
+@ Output:
+@ 		r0 <- average measure
+computeAverage:
+		push 		{r4, r5, r6, r7}
+		mov 		r5, r0			@ base address
+		mov 		r4, #8			@ counter
+		mov 		r0, #0			@ initialize output
+		
+addMeasure:	
+		sub		r4, r4, #1
+		ldr 		r6, [r5, r4, lsl #W_SHIFT]	@ load measure
+		add 		r0, r0, r6, lsr #3	
+		
+		cmp 		r4, #0
+		bne		addMeasure
+				
+		pop		{r4, r5, r6, r7}
+		bx 		lr
+
+
+
 @ convToDistance
 @ Converts the amount of time elapsed between the trigger 
 @ and the echo (us), to the distance of the obstacle (cm). 
 @ Calling sequence:
 @		r0 <- lower 4 bytes of the elapsed time
+@		bl convToDistance
 @ Output:
 @		r0 <- distance	[cm]
-@ distance [cm]= (sound_speed * elapsed_time)/2 = 
+@ distance [cm]= (sound_speed elapsed_time)/2 = 
 @ = (340 *10^-4 [cm/us]) * (elapsed_time[us]) /2 =
 @ = 170 * 10^-4 *elapsed_time [cm] = elapsed_time/58 [cm]
 convToDistance:
 		ldr		r1, =58
 		udiv	r0, r0, r1
 		bx lr
+		
 
         .align  2
 
@@ -195,4 +248,7 @@ timeAddr:
 		.word time
 distMessageAddr:
 		.word distMessage
+measuresAddr:
+		.word measures
+		
 

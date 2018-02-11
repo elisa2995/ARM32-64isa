@@ -2,7 +2,7 @@
 
 all: distanceTimer32
 
-distanceTimer32 : distanceTimer32.o gpioPinFSelect32.o gpioPinSet32.o gpioPinClr32.o gpioPinRead32.o systemTimer32.o map32.o
+distanceTimer32 : distanceTimer32.o gpioPinFSelect32.o gpioPinSet32.o gpioPinClr32.o gpioPinRead32.o systemTimer32.o map32.o saveMeasures.c
 		gcc -o $@ $+ 
 
 gpioPinFSelect32.o : gpioPinFSelect32.s

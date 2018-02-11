@@ -24,9 +24,14 @@
         .equ    INPUT,0         			// use pin for input
         .equ    OUTPUT,1        			// use pin for ouput
         .equ    PIN_ECHO,11       			// echo pin 
-		.equ	PIN_TRIG, 26				// trigger pin 
-		.equ	TEN_MS, 10000				// wait time between two measures
-
+	.equ	PIN_TRIG, 26				// trigger pin 
+	.equ	SIXTY_MS, 60000				// wait time between two measures
+	.equ	W_SHIFT, 2				// number of shifts to convert bytes to words 
+	
+	.data
+	.align 4
+measures:
+	.word	0,0,0,0,0,0,0,0	
 
 // Constant program data	   	
         .section .rodata
@@ -43,6 +48,7 @@ distMessage:
 // The program
         .text
         .align  4				// $
+        .global addMeasure
         .global main								  	   
 main:													  
 		stp x30, x29, [sp, #-16]!		// push {lr, fp} $			     
@@ -94,7 +100,7 @@ mmapOK:
         bl      gpioPinFSelect   		// select function
 
 // For 10 times, trigger the sensor and print the distance
-		mov 	x23, #10
+		mov 	x23, #8
 trigger:
 // Trigger the sensor by setting the trigger pin to 1 for at least 10 us
         mov     x0, x20			 		// GPIO programming memory
@@ -138,19 +144,29 @@ waitEcho:
 		mov		x21, x0					// time elapsed 
 
 // Retrieve the distance of the object
-		mov 	x0, x21
-		bl 		convToDistance
-		mov 	x21, x0					// distance
-		
-		ldr 	x0, distMessageAddr		// message
-		mov		x1,  x21				// distance
-		bl 		printf					// print the distance
+		sub		x23, x23, #1
+		ldr 		x1, measuresAddr
+		str		w21, [x1, x23, lsl #W_SHIFT]
 
-		mov 	x0, #TEN_MS				// wait for 10 ms
+		mov 		x0, #SIXTY_MS				// wait for 60 ms
 		bl 		delay
 
-		subs	x23, x23, #1
+		cmp 		x23, #0
 		bne		trigger	
+		
+// Calculate the average measure and the corresponding distance
+		ldr 		x0, measuresAddr
+		bl 		computeAverage				
+		bl 		convToDistance
+		mov 		x21, x0
+		ldr		x0, distMessageAddr 		// message
+		mov		x1, x21				// distance
+		bl		printf
+		
+// Save measures into a file
+		ldr 		x0, measuresAddr
+		mov		x1, #8
+		bl 		saveMeasures		
 
 // Unmap the memory
         mov     x0, x20         		// memory to unmap
@@ -169,6 +185,32 @@ allDone:
 
         ret			            		// return
 
+// computeAverage
+// Computes the average measure 
+// Calling sequence:
+//		x0 <- address of the array of measures
+// 		bl computeAverage
+// Output:
+// 		r0 <- average measure
+computeAverage:
+		stp		x19, x20, [sp, #-16]!		// push {x19, x20} $
+		stp 		x21, x22, [sp, #-16]!		// push {x21, x22} $
+		mov 		x20, x0			// base address
+		mov 		x19, #8			// counter
+		mov 		x0, #0			// initialize output
+		
+addMeasure:	
+		sub		x19, x19, #1
+		ldrsw 		x21, [x20, x19, lsl #W_SHIFT]	// load measure
+		add 		x0, x0, x21, lsr #3	
+		
+		cmp 		x19, #0
+		bne		addMeasure
+				
+		ldp 	x21, x22, [sp], #16		// pop {x21, x22} $ 
+		ldp 	x19, x20, [sp], #16		// pop {x19, x20} $ 
+		ret
+
 // convToDistance
 // Converts the amount of time elapsed between the trigger 
 // and the echo (us), to the distance of the obstacle (cm). 
@@ -176,7 +218,7 @@ allDone:
 //		x0 <- elapsed time
 // Output:
 //		x0 <- distance	[cm]
-// distance [cm]= (sound_speed * elapsed_time)/2 = 
+// distance [cm]= (sound_speed*elapsed_time)/2 = 
 // = (340 *10^-4 [cm/us]) * (elapsed_time[us]) /2 =
 // = 170 * 10^-4 *elapsed_time [cm] = elapsed_time/58 [cm] 
 convToDistance:
@@ -197,6 +239,9 @@ memErrAddr:
         .dword   memErr
 distMessageAddr:
 		.dword	 distMessage
+measuresAddr:
+	.dword	measures
+	
 	
 
 			

@@ -2,7 +2,7 @@
 
 all: distanceTimer64
 
-distanceTimer64 : distanceTimer64.o gpioPinFSelect64.o gpioPinSet64.o gpioPinClr64.o gpioPinRead64.o map64.o systemTimer64.o
+distanceTimer64 : distanceTimer64.o gpioPinFSelect64.o gpioPinSet64.o gpioPinClr64.o gpioPinRead64.o map64.o systemTimer64.o saveMeasures.c
 		gcc -o $@ $+ 
 
 gpioPinFSelect64.o : gpioPinFSelect64.s
