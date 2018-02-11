@@ -1,6 +1,4 @@
-<h1>DistanceTimer</h1>
-This whole content can be found in the <a href="https://github.com/elisa2995/ARM32-64isa/wiki/GPIO-05-DistanceTimer">wiki</a> of the project. <br>
-This program integrates the program <a href="https://github.com/elisa2995/ARM32-64isa/wiki/GPIO-04_Distance">04_Distance</a>, exploiting the functionalities of the System Timer. In fact,  counting the time between the moment in which the ultrasonic wave is sent and the echo is received back, it's possible to calculate the distance of the object.
+This program integrates the program <a href="https://github.com/elisa2995/ARM32-64isa/wiki/GPIO-04_Distance">04_Distance</a>, exploiting the functionalities of the System Timer. In fact,  counting the time between the moment in which the ultrasonic wave is sent and the echo is received back, it's possible to calculate the distance of the object. This program can also be used to see how polling performance is affected by high CPU workloads (<a href="#poll">here</a>).  
 
 <h3>Setup</h3>
 The setup is the same discussed in <a href="https://github.com/elisa2995/ARM32-64isa/wiki/GPIO-04_Distance">Distance</a>:
@@ -128,5 +126,89 @@ distance [cm]= (sound_speed[cm/μs] * elapsed_time[μs])/2 =
 
 You have to divide by 2 because the sound wave has to travel to the object and back.
 The time that we have to use is the elapsed time between when an ultrasonic wave is transmitted and when it is received.
-
-
+To have a more reliable result, the program takes the measure 8 times and then it does the average. Measures (in term of elapsed time) are saved into a file called measures.txt. 
+<hr>
+<h3 id="poll">CPU stress and polling performance</h3>
+To see how polling performance is affected by different CPU workloads, we exploited:
+<ul>
+<li>stress tool (<code>sudo apt-get install stress</code> on Raspbian or <code>sudo emerge stress</code> on Gentoo).</li>
+<li><a href="https://github.com/opsengine/cpulimit#install-instructions">CPU usage limiter</a></li> 
+<li><a href="http://man7.org/linux/man-pages/man1/top.1.html"><code>top</code></a> command, to display Linux processes</li>
+<li>A program able to generate heavy workload</li>
+</ul>
+We decided to stress progressively the 4 CPUs (percentages are reported as based on a single CPU - e.g. 200% means that 2 CPUs are fully stressed).<br>
+For example to stress the CPUs at 320% we run:<br><br>
+<table>
+<tr>
+<td>
+<pre>
+<code>
+sudo stress --cpu 3
+</code>
+</pre>
+<br>
+in parallel with:<br>
+<pre>
+<code>
+sudo cpulimit -l 20 programxx
+</code>
+</pre>
+</td>
+<td>
+<a href="https://github.com/elisa2995/ARM32-64isa/blob/master/media/Stress320.png"><img src="https://github.com/elisa2995/ARM32-64isa/blob/master/media/Stress320.png"></a>
+</td>
+</tr>
+</table>
+<h4>Performance analysis</h4>
+We took 24 measures for each different workload, with objects at 17cm and 189cm. We obtained these results:<br><br>
+<table>
+<thead>
+<tr>
+<th>Arch</th>
+<th>17 cm</th>
+<th>189 cm</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>32 bit</td>
+<td><a href="https://github.com/elisa2995/ARM32-64isa/blob/master/media/m17b32.png"><img src="https://github.com/elisa2995/ARM32-64isa/blob/master/media/m17b32.png"></a></td>
+<td><a href="https://github.com/elisa2995/ARM32-64isa/blob/master/media/m189b32.png"><img src="https://github.com/elisa2995/ARM32-64isa/blob/master/media/m189b32.png"></a></td>
+</tr>
+<tr>
+<td>64 bit</td>
+<td><a href="https://github.com/elisa2995/ARM32-64isa/blob/master/media/m17b64.png"><img src="https://github.com/elisa2995/ARM32-64isa/blob/master/media/m17b64.png"></a></td>
+<td><a href="https://github.com/elisa2995/ARM32-64isa/blob/master/media/m189b64.png"><img src="https://github.com/elisa2995/ARM32-64isa/blob/master/media/m189b64.png"></a></td>
+</tr>
+</tbody>
+</table>
+<br>
+We aggregated the measures into boxplots: <br><br>
+<table>
+<thead>
+<tr>
+<th>Arch</th>
+<th>17 cm</th>
+<th>189 cm</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>32 bit</td>
+<td><a href="https://github.com/elisa2995/ARM32-64isa/blob/master/media/m17b32.jpg"><img src="https://github.com/elisa2995/ARM32-64isa/blob/master/media/m17b32.jpg"></a></td>
+<td><a href="https://github.com/elisa2995/ARM32-64isa/blob/master/media/m189b32.jpg"><img src="https://github.com/elisa2995/ARM32-64isa/blob/master/media/m189b32.jpg"></a></td>
+</tr>
+<tr>
+<td>64 bit</td>
+<td><a href="https://github.com/elisa2995/ARM32-64isa/blob/master/media/m17b64.jpg"><img src="https://github.com/elisa2995/ARM32-64isa/blob/master/media/m17b64.jpg"></a></td>
+<td><a href="https://github.com/elisa2995/ARM32-64isa/blob/master/media/m189b64.jpg"><img src="https://github.com/elisa2995/ARM32-64isa/blob/master/media/m189b64.jpg"></a></td>
+</tr>
+</tbody>
+</table>
+<br>
+From the charts we can see that:
+<ul>
+<li>The performance is not affected as long as 1 CPU is free</li>
+<li>When the object is closer (17 cm), the measure is quite stable</li>
+<li>At 189 cm, the measure progressively worsens with the workload: the number of outliers grows up to 5/24 when the stress is maximum</li>
+</ul>
