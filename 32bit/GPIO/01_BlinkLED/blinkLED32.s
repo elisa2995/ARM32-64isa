@@ -64,14 +64,14 @@ gpiomemOK:
         mov     r4, r0          @ use r4 for file descriptor
 
 @ Map the GPIO registers to a main memory location so we can access them
-        ldr		r5, gpio				@ address of the GPIO
-		push	{r4, r5}
+        ldr	r5, gpio			@ address of the GPIO
+	push	{r4, r5}
         mov     r0, #NO_PREF     		@ let kernel pick memory
         mov     r1, #PAGE_SIZE   		@ get 1 page of memory
         mov     r2, #PROT_RDWR   		@ read/write this memory
         mov     r3, #MAP_SHARED  		@ share with other processes
         bl      mmap
-		pop		{r4, r5}
+	pop	{r4, r5}
         cmp     r0, -1          		@ check for error
         bne     mmapOK          		@ no error, continue
         ldr     r0, memErrAddr 			@ error, tell user
@@ -87,28 +87,28 @@ mmapOK:
         bl      gpioPinFSelect  		@ select function
 
 @ Initialize the LED pin pulling it up (turn off the led in case it's on - the voltage of the pin if floating)
-		mov     r0, r5					@ GPIO programming memory
+	mov     r0, r5				@ GPIO programming memory
         mov     r1, #PIN_LED			@ LED pin
-        bl      gpioPinSet				@ pull up the pin
+        bl      gpioPinSet			@ pull up the pin
 
 @Blink the led 5 times
         mov     r6, 5          		 	@ blink five times
 blink:
         mov     r0, r5          		@ GPIO programming memory
         mov     r1, #PIN_LED			@ pin to blink
-        bl      gpioPinClr				@ pull down the pin  (turn the LED on)
+        bl      gpioPinClr			@ pull down the pin  (turn the LED on)
 
         mov     r0, #ONE_SEC     		@ wait a second
         bl      sleep
 
-        mov     r0, r5					@ GPIO programming memory
+        mov     r0, r5				@ GPIO programming memory
         mov     r1, #PIN_LED			@ pin to blink
-        bl      gpioPinSet				@ pull up the pin (turn the LED off)
+        bl      gpioPinSet			@ pull up the pin (turn the LED off)
 
         mov     r0, #ONE_SEC     		@ wait a second
         bl      sleep
         subs    r6, r6, 1       		@ decrement counter
-        bgt     blink					@ loop until 0
+        bgt     blink				@ loop until 0
 
 @ Unmap the memory       
         mov     r0, r5          		@ memory to unmap
@@ -121,7 +121,7 @@ closeDev:
 
 allDone:        
         mov     r0, 0           		@ return 0;
-		pop		{r4, r5, r6, lr}
+	pop	{r4, r5, r6, lr}
         bx      lr              		@ return
         
         .align  2
