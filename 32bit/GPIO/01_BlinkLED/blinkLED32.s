@@ -48,7 +48,7 @@ memErr:
         .global main
 main:
 
-		push	{r4, r5, r6, lr}
+	push	{r4, r5, r6, lr}
 
 @ Open /dev/gpiomem for read/write and syncing        
         ldr     r0, deviceAddr  @ address of /dev/gpiomem
