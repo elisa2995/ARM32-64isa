@@ -45,9 +45,9 @@ memErr:
         .align  4				// $
         .global main									  	   
 main:																		
-		stp x30, x29, [sp, #-16]!		// push {lr, fp} $ 		
-		stp x19, x20, [sp, #-16]!		// push {x19, x20} $  		 
-		stp x21, x22, [sp, #-16]!		// push {x21, x22} $		 
+	stp x30, x29, [sp, #-16]!		// push {lr, fp} $ 		
+	stp x19, x20, [sp, #-16]!		// push {x19, x20} $  		 
+	stp x21, x22, [sp, #-16]!		// push {x21, x22} $		 
 
 // Open /dev/mem for read/write and syncing        
         ldr     x0, deviceAddr  		// address of /dev/mem	 $
@@ -68,9 +68,9 @@ gpiomemOK:
         mov     x2, #PROT_RDWR   		// read/write this memory							   
         mov     x3, #MAP_SHARED  		// share with other processes						   
      	mov		x4, x19					// /dev/mem file descriptor		$
-		ldr 	x5, gpio				// address of GPIO
-		bl      mmap	
-	   	cmp     x0, -1          		// check for error
+	ldr 	x5, gpio				// address of GPIO
+	bl      mmap	
+	cmp     x0, -1          		// check for error
         bne     mmapOK          		// no error, continue
         ldr     x0, memErrAddr 			// error, tell user
         bl      printf
@@ -88,7 +88,7 @@ mmapOK:
         bl      gpioPinFSelect  		// select function
 
 // Initialize the LED pin, pulling it up (turn off the LED in case it is on - the voltage of the pin is floating)
-		mov     x0, x20			 		// GPIO programming memory
+	mov     x0, x20			 		// GPIO programming memory
         mov     x1, #PIN_LED	 		// LED pin
         bl      gpioPinSet		 		// pull up the pin 
 
@@ -106,7 +106,7 @@ blink:
         mov     x1, #PIN_LED	  		// pin to blink
         bl      gpioPinSet		  		// pull up the pin (turn the LED off)
 
-	    mov     x0, #ONE_SEC     		// wait a second
+	mov     x0, #ONE_SEC     		// wait a second
         bl      sleep
 
         subs    x21, x21, #1     		// decrement counter
@@ -124,9 +124,9 @@ closeDev:
 allDone:        
         mov     x0, #0           		// return 0;
 
-		ldp 	x21, x22, [sp], #16		//pop {x21,x22}  $ 
-		ldp 	x19, x20, [sp], #16		//pop {x19, x20} $ 
-		ldp 	x30, x29, [sp], #16		//pop {lr, fp}   $ 
+	ldp 	x21, x22, [sp], #16		//pop {x21,x22}  $ 
+	ldp 	x19, x20, [sp], #16		//pop {x19, x20} $ 
+	ldp 	x30, x29, [sp], #16		//pop {lr, fp}   $ 
 
         ret			            // return
         
