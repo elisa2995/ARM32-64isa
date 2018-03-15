@@ -41,7 +41,7 @@ gpioPinSet:
         mov     w18, PIN         		// one pin
         lsl     w18, w18, w16   		// shift to pin position
         orr     w17, w17, w18  		 	// clear bit
-	str		w17, [x15]		// update register
+	str	w17, [x15]			// update register
 
         mov     x0, #0           		// return 0;
 
